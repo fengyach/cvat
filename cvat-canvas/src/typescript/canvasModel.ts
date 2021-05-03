@@ -107,6 +107,10 @@ export interface SplitData {
     enabled: boolean;
 }
 
+export interface CombineData {
+    enabled: boolean;
+}
+
 export enum FrameZoom {
     MIN = 0.1,
     MAX = 10,
@@ -131,6 +135,7 @@ export enum UpdateReasons {
     MERGE = 'merge',
     SPLIT = 'split',
     GROUP = 'group',
+    COMBINE = 'combine',
     SELECT = 'select',
     CANCEL = 'cancel',
     BITMAP = 'bitmap',
@@ -148,6 +153,7 @@ export enum Mode {
     DRAW = 'draw',
     EDIT = 'edit',
     MERGE = 'merge',
+    COMBINE = 'combine',
     SPLIT = 'split',
     GROUP = 'group',
     INTERACT = 'interact',
@@ -168,6 +174,7 @@ export interface CanvasModel {
     readonly drawData: DrawData;
     readonly interactionData: InteractionData;
     readonly mergeData: MergeData;
+    readonly combineData: CombineData;
     readonly splitData: SplitData;
     readonly groupData: GroupData;
     readonly configuration: Configuration;
@@ -191,6 +198,7 @@ export interface CanvasModel {
     group(groupData: GroupData): void;
     split(splitData: SplitData): void;
     merge(mergeData: MergeData): void;
+    combine(combineData: CombineData): void;
     select(objectState: any): void;
     interact(interactionData: InteractionData): void;
 
@@ -227,6 +235,7 @@ export class CanvasModelImpl extends MasterImpl implements CanvasModel {
         drawData: DrawData;
         interactionData: InteractionData;
         mergeData: MergeData;
+        combineData: CombineData;
         groupData: GroupData;
         splitData: SplitData;
         selected: any;
@@ -282,6 +291,9 @@ export class CanvasModelImpl extends MasterImpl implements CanvasModel {
                 enabled: false,
             },
             mergeData: {
+                enabled: false,
+            },
+            combineData: {
                 enabled: false,
             },
             groupData: {
@@ -615,6 +627,23 @@ export class CanvasModelImpl extends MasterImpl implements CanvasModel {
         this.notify(UpdateReasons.MERGE);
     }
 
+    public combine(combineData: CombineData): void {
+        if (![Mode.IDLE, Mode.COMBINE].includes(this.data.mode)) {
+            throw Error(`Canvas is busy. Action: ${this.data.mode}`);
+        }
+
+        if (this.data.combineData.enabled && combineData.enabled) {
+            return;
+        }
+
+        if (!this.data.combineData.enabled && !combineData.enabled) {
+            return;
+        }
+
+        this.data.combineData = { ...combineData };
+        this.notify(UpdateReasons.COMBINE);
+    }
+
     public select(objectState: any): void {
         this.data.selected = objectState;
         this.notify(UpdateReasons.SELECT);
@@ -745,6 +774,10 @@ export class CanvasModelImpl extends MasterImpl implements CanvasModel {
 
     public get groupData(): GroupData {
         return { ...this.data.groupData };
+    }
+
+    public get combineData(): CombineData {
+        return { ...this.data.combineData };
     }
 
     public get selected(): any {

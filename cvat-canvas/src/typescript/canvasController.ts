@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Intel Corporation
+// Copyright (C) 2019-2021 Intel Corporation
 //
 // SPDX-License-Identifier: MIT
 
@@ -12,6 +12,7 @@ import {
     MergeData,
     SplitData,
     GroupData,
+    CombineData,
     Mode,
     InteractionData,
     Configuration,
@@ -28,6 +29,7 @@ export interface CanvasController {
     readonly mergeData: MergeData;
     readonly splitData: SplitData;
     readonly groupData: GroupData;
+    readonly combineData: CombineData;
     readonly selected: any;
     readonly configuration: Configuration;
     mode: Mode;
@@ -37,6 +39,7 @@ export interface CanvasController {
     draw(drawData: DrawData): void;
     interact(interactionData: InteractionData): void;
     merge(mergeData: MergeData): void;
+    combine(combineData: CombineData): void;
     split(splitData: SplitData): void;
     group(groupData: GroupData): void;
     selectRegion(enabled: boolean): void;
@@ -107,6 +110,10 @@ export class CanvasControllerImpl implements CanvasController {
         this.model.group(groupData);
     }
 
+    public combine(combineData: CombineData): void {
+        this.model.combine(combineData);
+    }
+
     public selectRegion(enable: boolean): void {
         this.model.selectRegion(enable);
     }
@@ -157,6 +164,10 @@ export class CanvasControllerImpl implements CanvasController {
 
     public get groupData(): GroupData {
         return this.model.groupData;
+    }
+
+    public get combineData(): CombineData {
+        return this.model.combineData;
     }
 
     public get selected(): any {

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Intel Corporation
+// Copyright (C) 2019-2021 Intel Corporation
 //
 // SPDX-License-Identifier: MIT
 
@@ -16,6 +16,7 @@ import {
     CuboidDrawingMethod,
     Configuration,
     Geometry,
+    CombineData,
 } from './canvasModel';
 import { Master } from './master';
 import { CanvasController, CanvasControllerImpl } from './canvasController';
@@ -42,6 +43,7 @@ interface Canvas {
     split(splitData: SplitData): void;
     merge(mergeData: MergeData): void;
     select(objectState: any): void;
+    combine(combineData: CombineData): void;
 
     fitCanvas(): void;
     bitmap(enable: boolean): void;
@@ -138,6 +140,10 @@ class CanvasImpl implements Canvas {
 
     public merge(mergeData: MergeData): void {
         this.model.merge(mergeData);
+    }
+
+    public combine(combineData: CombineData): void {
+        this.model.combine(combineData);
     }
 
     public select(objectState: any): void {

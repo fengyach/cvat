@@ -26,6 +26,7 @@ import SetupTagControl, { Props as SetupTagControlProps } from './setup-tag-cont
 import MergeControl, { Props as MergeControlProps } from './merge-control';
 import GroupControl, { Props as GroupControlProps } from './group-control';
 import SplitControl, { Props as SplitControlProps } from './split-control';
+import CombineControl, { Props as CombineControlProps } from './combine-control';
 
 interface Props {
     canvasInstance: Canvas;
@@ -37,6 +38,7 @@ interface Props {
     mergeObjects(enabled: boolean): void;
     groupObjects(enabled: boolean): void;
     splitTrack(enabled: boolean): void;
+    combineShapes(enabled: boolean): void;
     rotateFrame(rotation: Rotation): void;
     repeatDrawShape(): void;
     pasteShape(): void;
@@ -62,6 +64,7 @@ const ObservedSetupTagControl = ControlVisibilityObserver<SetupTagControlProps>(
 const ObservedMergeControl = ControlVisibilityObserver<MergeControlProps>(MergeControl);
 const ObservedGroupControl = ControlVisibilityObserver<GroupControlProps>(GroupControl);
 const ObservedSplitControl = ControlVisibilityObserver<SplitControlProps>(SplitControl);
+const ObservedCombineControl = ControlVisibilityObserver<CombineControlProps>(CombineControl);
 
 export default function ControlsSideBarComponent(props: Props): JSX.Element {
     const {
@@ -73,6 +76,7 @@ export default function ControlsSideBarComponent(props: Props): JSX.Element {
         mergeObjects,
         groupObjects,
         splitTrack,
+        combineShapes,
         rotateFrame,
         repeatDrawShape,
         pasteShape,
@@ -176,6 +180,15 @@ export default function ControlsSideBarComponent(props: Props): JSX.Element {
                 canvasInstance.group({ enabled: !grouping });
                 groupObjects(!grouping);
             },
+            SWITCH_COMBINE_MODE: (event: KeyboardEvent | undefined) => {
+                preventDefault(event);
+                const combining = activeControl === ActiveControl.COMBINE;
+                if (!combining) {
+                    canvasInstance.cancel();
+                }
+                canvasInstance.combine({ enabled: !combining });
+                combineShapes(!combining);
+            },
             RESET_GROUP: (event: KeyboardEvent | undefined) => {
                 preventDefault(event);
                 const grouping = activeControl === ActiveControl.GROUP;
@@ -194,6 +207,7 @@ export default function ControlsSideBarComponent(props: Props): JSX.Element {
             SWITCH_MERGE_MODE: keyMap.SWITCH_MERGE_MODE,
             SWITCH_SPLIT_MODE: keyMap.SWITCH_SPLIT_MODE,
             SWITCH_GROUP_MODE: keyMap.SWITCH_GROUP_MODE,
+            SWITCH_COMBINE_MODE: keyMap.SWITCH_COMBINE_MODE,
             RESET_GROUP: keyMap.RESET_GROUP,
         };
     }
@@ -270,6 +284,14 @@ export default function ControlsSideBarComponent(props: Props): JSX.Element {
                 switchSplitShortcut={normalizedKeyMap.SWITCH_SPLIT_MODE}
                 activeControl={activeControl}
                 splitTrack={splitTrack}
+                disabled={!labels.length}
+            />
+
+            <ObservedCombineControl
+                switchCombineShortcut={normalizedKeyMap.SWITCH_COMBINE_MODE}
+                canvasInstance={canvasInstance}
+                activeControl={activeControl}
+                combineShapes={combineShapes}
                 disabled={!labels.length}
             />
 

@@ -10,6 +10,7 @@ import {
     mergeObjects,
     groupObjects,
     splitTrack,
+    combineShapes,
     redrawShapeAsync,
     rotateCurrentFrame,
     repeatDrawShapeAsync,
@@ -32,6 +33,7 @@ interface DispatchToProps {
     mergeObjects(enabled: boolean): void;
     groupObjects(enabled: boolean): void;
     splitTrack(enabled: boolean): void;
+    combineShapes(enabled: boolean): void;
     rotateFrame(angle: Rotation): void;
     selectIssuePosition(enabled: boolean): void;
     resetGroup(): void;
@@ -70,6 +72,9 @@ function dispatchToProps(dispatch: any): DispatchToProps {
         },
         splitTrack(enabled: boolean): void {
             dispatch(splitTrack(enabled));
+        },
+        combineShapes(enabled: boolean): void {
+            dispatch(combineShapes(enabled));
         },
         selectIssuePosition(enabled: boolean): void {
             dispatch(selectIssuePositionAction(enabled));

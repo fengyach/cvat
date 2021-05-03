@@ -71,6 +71,7 @@ interface Props {
     onMergeObjects: (enabled: boolean) => void;
     onGroupObjects: (enabled: boolean) => void;
     onSplitTrack: (enabled: boolean) => void;
+    onCombineShapes: (enabled: boolean) => void;
     onEditShape: (enabled: boolean) => void;
     onShapeDrawn: () => void;
     onResetCanvas: () => void;
@@ -79,6 +80,7 @@ interface Props {
     onMergeAnnotations(sessionInstance: any, frame: number, states: any[]): void;
     onGroupAnnotations(sessionInstance: any, frame: number, states: any[]): void;
     onSplitAnnotations(sessionInstance: any, frame: number, state: any): void;
+    onCombineAnnotations(sessionInstance: any, frame: number, states: any[]): void;
     onActivateObject(activatedStateID: number | null): void;
     onSelectObjects(selectedStatesID: number[]): void;
     onUpdateContextMenu(visible: boolean, left: number, top: number, type: ContextMenuType, pointID?: number): void;
@@ -333,6 +335,7 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
         canvasInstance.html().removeEventListener('canvas.groupped', this.onCanvasObjectsGroupped);
         canvasInstance.html().removeEventListener('canvas.regionselected', this.onCanvasPositionSelected);
         canvasInstance.html().removeEventListener('canvas.splitted', this.onCanvasTrackSplitted);
+        canvasInstance.html().removeEventListener('canvas.combined', this.onCanvasShapesCombined);
 
         canvasInstance.html().removeEventListener('canvas.contextmenu', this.onCanvasPointContextMenu);
         canvasInstance.html().removeEventListener('canvas.error', this.onCanvasErrorOccurrence);
@@ -413,6 +416,21 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
 
         const { state } = event.detail;
         onSplitAnnotations(jobInstance, frame, state);
+    };
+
+    private onCanvasShapesCombined = (event: any): void => {
+        const {
+            jobInstance, frame, onCombineAnnotations, onCombineShapes,
+        } = this.props;
+
+        onCombineShapes(false);
+
+        const { states, duration } = event.detail;
+        jobInstance.logger.log(LogType.combineShapes, {
+            duration,
+            count: states.length,
+        });
+        onCombineAnnotations(jobInstance, frame, states);
     };
 
     private fitCanvas = (): void => {
@@ -763,6 +781,7 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
         canvasInstance.html().addEventListener('canvas.groupped', this.onCanvasObjectsGroupped);
         canvasInstance.html().addEventListener('canvas.regionselected', this.onCanvasPositionSelected);
         canvasInstance.html().addEventListener('canvas.splitted', this.onCanvasTrackSplitted);
+        canvasInstance.html().addEventListener('canvas.combined', this.onCanvasShapesCombined);
 
         canvasInstance.html().addEventListener('canvas.contextmenu', this.onCanvasPointContextMenu);
         canvasInstance.html().addEventListener('canvas.error', this.onCanvasErrorOccurrence);

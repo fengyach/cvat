@@ -127,6 +127,7 @@ export enum AnnotationActionTypes {
     MERGE_OBJECTS = 'MERGE_OBJECTS',
     GROUP_OBJECTS = 'GROUP_OBJECTS',
     SPLIT_TRACK = 'SPLIT_TRACK',
+    COMBINE_SHAPES = 'COMBINE_SHAPES',
     COPY_SHAPE = 'COPY_SHAPE',
     PASTE_SHAPE = 'PASTE_SHAPE',
     EDIT_SHAPE = 'EDIT_SHAPE',
@@ -146,6 +147,8 @@ export enum AnnotationActionTypes {
     GROUP_ANNOTATIONS_FAILED = 'GROUP_ANNOTATIONS_FAILED',
     SPLIT_ANNOTATIONS_SUCCESS = 'SPLIT_ANNOTATIONS_SUCCESS',
     SPLIT_ANNOTATIONS_FAILED = 'SPLIT_ANNOTATIONS_FAILED',
+    COMBINE_ANNOTATIONS_SUCCESS = 'COMBINE_ANNOTATIONS_SUCCESS',
+    COMBINE_ANNOTATIONS_FAILED = 'COMBINE_ANNOTATIONS_FAILED',
     UPDATE_TAB_CONTENT_HEIGHT = 'UPDATE_TAB_CONTENT_HEIGHT',
     COLLAPSE_SIDEBAR = 'COLLAPSE_SIDEBAR',
     COLLAPSE_APPEARANCE = 'COLLAPSE_APPEARANCE',
@@ -1189,6 +1192,15 @@ export function splitTrack(enabled: boolean): AnyAction {
     };
 }
 
+export function combineShapes(enabled: boolean): AnyAction {
+    return {
+        type: AnnotationActionTypes.COMBINE_SHAPES,
+        payload: {
+            enabled,
+        },
+    };
+}
+
 export function updateAnnotationsAsync(statesToUpdate: any[]): ThunkAction {
     return async (dispatch: ActionCreator<Dispatch>): Promise<void> => {
         const {
@@ -1339,6 +1351,32 @@ export function splitAnnotationsAsync(sessionInstance: any, frame: number, state
         } catch (error) {
             dispatch({
                 type: AnnotationActionTypes.SPLIT_ANNOTATIONS_FAILED,
+                payload: {
+                    error,
+                },
+            });
+        }
+    };
+}
+
+export function combineAnnotationsAsync(sessionInstance: any, frame: number, statesToCombine: any[]): ThunkAction {
+    return async (dispatch: ActionCreator<Dispatch>): Promise<void> => {
+        try {
+            const { filters, showAllInterpolationTracks } = receiveAnnotationsParameters();
+            await sessionInstance.annotations.combine(statesToCombine);
+            const states = await sessionInstance.annotations.get(frame, showAllInterpolationTracks, filters);
+            const history = await sessionInstance.actions.get();
+
+            dispatch({
+                type: AnnotationActionTypes.COMBINE_ANNOTATIONS_SUCCESS,
+                payload: {
+                    states,
+                    history,
+                },
+            });
+        } catch (error) {
+            dispatch({
+                type: AnnotationActionTypes.COMBINE_ANNOTATIONS_FAILED,
                 payload: {
                     error,
                 },

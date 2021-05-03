@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Intel Corporation
+// Copyright (C) 2019-2021 Intel Corporation
 //
 // SPDX-License-Identifier: MIT
 
@@ -15,6 +15,7 @@ import { EditHandler, EditHandlerImpl } from './editHandler';
 import { MergeHandler, MergeHandlerImpl } from './mergeHandler';
 import { SplitHandler, SplitHandlerImpl } from './splitHandler';
 import { GroupHandler, GroupHandlerImpl } from './groupHandler';
+import { CombineHandler, CombineHandlerImpl } from './combineHandler';
 import { RegionSelector, RegionSelectorImpl } from './regionSelector';
 import { ZoomHandler, ZoomHandlerImpl } from './zoomHandler';
 import { InteractionHandler, InteractionHandlerImpl } from './interactionHandler';
@@ -41,6 +42,7 @@ import {
     MergeData,
     SplitData,
     GroupData,
+    CombineData,
     Mode,
     Size,
     Configuration,
@@ -78,6 +80,7 @@ export class CanvasViewImpl implements CanvasView, Listener {
     private mergeHandler: MergeHandler;
     private splitHandler: SplitHandler;
     private groupHandler: GroupHandler;
+    private combineHandler: CombineHandler;
     private regionSelector: RegionSelector;
     private zoomHandler: ZoomHandler;
     private autoborderHandler: AutoborderHandler;
@@ -356,6 +359,34 @@ export class CanvasViewImpl implements CanvasView, Listener {
         }
 
         this.controller.group({
+            enabled: false,
+        });
+
+        this.mode = Mode.IDLE;
+    }
+
+    private onCombineDone(objects: any[] | null, duration?: number): void {
+        if (objects) {
+            const event: CustomEvent = new CustomEvent('canvas.combined', {
+                bubbles: false,
+                cancelable: true,
+                detail: {
+                    duration,
+                    states: objects,
+                },
+            });
+
+            this.canvas.dispatchEvent(event);
+        } else {
+            const event: CustomEvent = new CustomEvent('canvas.canceled', {
+                bubbles: false,
+                cancelable: true,
+            });
+
+            this.canvas.dispatchEvent(event);
+        }
+
+        this.controller.combine({
             enabled: false,
         });
 
@@ -1015,6 +1046,11 @@ export class CanvasViewImpl implements CanvasView, Listener {
             this.onFindObject.bind(this),
             this.adoptedContent,
         );
+        this.combineHandler = new CombineHandlerImpl(
+            this.onCombineDone.bind(this),
+            this.onFindObject.bind(this),
+            this.adoptedContent,
+        );
         this.regionSelector = new RegionSelectorImpl(
             this.onRegionSelected.bind(this),
             this.adoptedContent,
@@ -1183,6 +1219,9 @@ export class CanvasViewImpl implements CanvasView, Listener {
             if (this.mode === Mode.MERGE) {
                 this.mergeHandler.repeatSelection();
             }
+            if (this.mode === Mode.COMBINE) {
+                this.combineHandler.repeatSelection();
+            }
             const event: CustomEvent = new CustomEvent('canvas.setup');
             this.canvas.dispatchEvent(event);
         } else if (reason === UpdateReasons.ISSUE_REGIONS_UPDATED) {
@@ -1304,6 +1343,15 @@ export class CanvasViewImpl implements CanvasView, Listener {
                 this.canvas.style.cursor = '';
             }
             this.groupHandler.group(data);
+        } else if (reason === UpdateReasons.COMBINE) {
+            const data: CombineData = this.controller.combineData;
+            if (data.enabled) {
+                this.canvas.style.cursor = 'copy';
+                this.mode = Mode.COMBINE;
+            } else {
+                this.canvas.style.cursor = '';
+            }
+            this.combineHandler.combine(data);
         } else if (reason === UpdateReasons.SELECT) {
             if (this.mode === Mode.MERGE) {
                 this.mergeHandler.select(this.controller.selected);
@@ -1311,6 +1359,8 @@ export class CanvasViewImpl implements CanvasView, Listener {
                 this.splitHandler.select(this.controller.selected);
             } else if (this.mode === Mode.GROUP) {
                 this.groupHandler.select(this.controller.selected);
+            } else if (this.mode === Mode.COMBINE) {
+                this.combineHandler.select(this.controller.selected);
             }
         } else if (reason === UpdateReasons.CANCEL) {
             if (this.mode === Mode.DRAW) {
@@ -1323,6 +1373,8 @@ export class CanvasViewImpl implements CanvasView, Listener {
                 this.splitHandler.cancel();
             } else if (this.mode === Mode.GROUP) {
                 this.groupHandler.cancel();
+            } else if (this.mode === Mode.COMBINE) {
+                this.combineHandler.cancel();
             } else if (this.mode === Mode.SELECT_REGION) {
                 this.regionSelector.cancel();
             } else if (this.mode === Mode.EDIT) {

@@ -15,12 +15,14 @@ import {
     mergeObjects,
     groupObjects,
     splitTrack,
+    combineShapes,
     editShape,
     updateAnnotationsAsync,
     createAnnotationsAsync,
     mergeAnnotationsAsync,
     groupAnnotationsAsync,
     splitAnnotationsAsync,
+    combineAnnotationsAsync,
     activateObject,
     selectObjects,
     updateCanvasContextMenu,
@@ -103,12 +105,14 @@ interface DispatchToProps {
     onMergeObjects: (enabled: boolean) => void;
     onGroupObjects: (enabled: boolean) => void;
     onSplitTrack: (enabled: boolean) => void;
+    onCombineShapes: (enabled: boolean) => void;
     onEditShape: (enabled: boolean) => void;
     onUpdateAnnotations(states: any[]): void;
     onCreateAnnotations(sessionInstance: any, frame: number, states: any[]): void;
     onMergeAnnotations(sessionInstance: any, frame: number, states: any[]): void;
     onGroupAnnotations(sessionInstance: any, frame: number, states: any[]): void;
     onSplitAnnotations(sessionInstance: any, frame: number, state: any): void;
+    onCombineAnnotations(sessionInstance: any, frame: number, states: any[]): void;
     onActivateObject: (activatedStateID: number | null) => void;
     onSelectObjects: (selectedStatesID: number[]) => void;
     onUpdateContextMenu(visible: boolean, left: number, top: number, type: ContextMenuType, pointID?: number): void;
@@ -251,6 +255,9 @@ function mapDispatchToProps(dispatch: any): DispatchToProps {
         onEditShape(enabled: boolean): void {
             dispatch(editShape(enabled));
         },
+        onCombineShapes(enabled: boolean): void {
+            dispatch(combineShapes(enabled));
+        },
         onUpdateAnnotations(states: any[]): void {
             dispatch(updateAnnotationsAsync(states));
         },
@@ -265,6 +272,9 @@ function mapDispatchToProps(dispatch: any): DispatchToProps {
         },
         onSplitAnnotations(sessionInstance: any, frame: number, state: any): void {
             dispatch(splitAnnotationsAsync(sessionInstance, frame, state));
+        },
+        onCombineAnnotations(sessionInstance: any, frame: number, states: any[]): void {
+            dispatch(combineAnnotationsAsync(sessionInstance, frame, states));
         },
         onActivateObject(activatedStateID: number | null): void {
             if (activatedStateID === null) {

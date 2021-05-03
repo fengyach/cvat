@@ -781,6 +781,21 @@ export default function (state = defaultState, action: AnyAction): Notifications
                 },
             };
         }
+        case AnnotationActionTypes.COMBINE_ANNOTATIONS_FAILED: {
+            return {
+                ...state,
+                errors: {
+                    ...state.errors,
+                    annotation: {
+                        ...state.errors.annotation,
+                        merging: {
+                            message: 'Could not combine annotations',
+                            reason: action.payload.error.toString(),
+                        },
+                    },
+                },
+            };
+        }
         case AnnotationActionTypes.REMOVE_OBJECT_FAILED: {
             return {
                 ...state,

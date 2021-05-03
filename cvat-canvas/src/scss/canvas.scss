@@ -100,6 +100,20 @@ polyline.cvat_canvas_shape_merging {
     stroke: blue;
 }
 
+.cvat_canvas_shape_combining {
+    @extend .cvat_shape_action_dasharray;
+    @extend .cvat_shape_action_opacity;
+
+    fill: blue;
+}
+
+polyline.cvat_canvas_shape_combining {
+    @extend .cvat_shape_action_dasharray;
+    @extend .cvat_shape_action_opacity;
+
+    stroke: blue;
+}
+
 polyline.cvat_canvas_shape_splitting {
     @extend .cvat_shape_action_dasharray;
     @extend .cvat_shape_action_opacity;

@@ -573,6 +573,22 @@ export default (state = defaultState, action: AnyAction): AnnotationState => {
                 },
             };
         }
+        case AnnotationActionTypes.COMBINE_SHAPES: {
+            const { enabled } = action.payload;
+            const activeControl = enabled ? ActiveControl.COMBINE : ActiveControl.CURSOR;
+
+            return {
+                ...state,
+                annotations: {
+                    ...state.annotations,
+                    activatedStateID: null,
+                },
+                canvas: {
+                    ...state.canvas,
+                    activeControl,
+                },
+            };
+        }
         case AnnotationActionTypes.SHAPE_DRAWN: {
             return {
                 ...state,
@@ -679,6 +695,18 @@ export default (state = defaultState, action: AnyAction): AnnotationState => {
             };
         }
         case AnnotationActionTypes.SPLIT_ANNOTATIONS_SUCCESS: {
+            const { states, history } = action.payload;
+
+            return {
+                ...state,
+                annotations: {
+                    ...state.annotations,
+                    states,
+                    history,
+                },
+            };
+        }
+        case AnnotationActionTypes.COMBINE_ANNOTATIONS_SUCCESS: {
             const { states, history } = action.payload;
 
             return {

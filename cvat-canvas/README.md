@@ -55,6 +55,7 @@ Canvas itself handles:
         MERGE = 'merge',
         SPLIT = 'split',
         GROUP = 'group',
+        COMBINE = 'combine',
         INTERACT = 'interact',
         SELECT_ROI = 'select_roi',
         DRAG_CANVAS = 'drag_canvas',
@@ -87,6 +88,10 @@ Canvas itself handles:
     }
 
     interface MergeData {
+        enabled: boolean;
+    }
+
+    interface CombineData {
         enabled: boolean;
     }
 
@@ -126,6 +131,7 @@ Canvas itself handles:
         split(splitData: SplitData): void;
         merge(mergeData: MergeData): void;
         select(objectState: any): void;
+        combine(combineData: CombineData): void;
 
         fitCanvas(): void;
         bitmap(enable: boolean): void;
@@ -149,6 +155,7 @@ Canvas itself handles:
   `cvat_canvas_shape_activated`,
   `cvat_canvas_shape_grouping`,
   `cvat_canvas_shape_merging`,
+  `cvat_canvas_shape_combining`,
   `cvat_canvas_shape_drawing`,
   `cvat_canvas_shape_occluded`
 - Drawn review ROIs have an id `cvat_canvas_issue_region_{issue.id}`
@@ -177,6 +184,7 @@ Standard JS events are used.
     - canvas.splitted => {state: ObjectState}
     - canvas.groupped => {states: ObjectState[]}
     - canvas.merged => {states: ObjectState[]}
+    - canvas.combined => {states: ObjectState[]}
     - canvas.canceled
     - canvas.dragstart
     - canvas.dragstop
@@ -218,27 +226,28 @@ canvas.draw({
 
 ## API Reaction
 
-|                   | IDLE | GROUP | SPLIT | DRAW | MERGE | EDIT | DRAG | RESIZE | ZOOM_CANVAS | DRAG_CANVAS | INTERACT |
-| ----------------- | ---- | ----- | ----- | ---- | ----- | ---- | ---- | ------ | ----------- | ----------- | -------- |
-| setup()           | +    | +     | +     | +/-  | +     | +/-  | +/-  | +/-    | +           | +           | +        |
-| activate()        | +    | -     | -     | -    | -     | -    | -    | -      | -           | -           | -        |
-| rotate()          | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        |
-| focus()           | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        |
-| fit()             | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        |
-| grid()            | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        |
-| draw()            | +    | -     | -     | +    | -     | -    | -    | -      | -           | -           | -        |
-| interact()        | +    | -     | -     | -    | -     | -    | -    | -      | -           | -           | +        |
-| split()           | +    | -     | +     | -    | -     | -    | -    | -      | -           | -           | -        |
-| group()           | +    | +     | -     | -    | -     | -    | -    | -      | -           | -           | -        |
-| merge()           | +    | -     | -     | -    | +     | -    | -    | -      | -           | -           | -        |
-| fitCanvas()       | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        |
-| dragCanvas()      | +    | -     | -     | -    | -     | -    | +    | -      | -           | +           | -        |
-| zoomCanvas()      | +    | -     | -     | -    | -     | -    | -    | +      | +           | -           | -        |
-| cancel()          | -    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        |
-| configure()       | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        |
-| bitmap()          | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        |
-| setZLayer()       | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        |
-| setupReviewROIs() | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        |
+|                   | IDLE | GROUP | SPLIT | DRAW | MERGE | EDIT | DRAG | RESIZE | ZOOM_CANVAS | DRAG_CANVAS | INTERACT | COMBINE |
+| ----------------- | ---- | ----- | ----- | ---- | ----- | ---- | ---- | ------ | ----------- | ----------- | -------- | ------- |
+| setup()           | +    | +     | +     | +/-  | +     | +/-  | +/-  | +/-    | +           | +           | +        | -       |
+| activate()        | +    | -     | -     | -    | -     | -    | -    | -      | -           | -           | -        | -       |
+| rotate()          | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        | -       |
+| focus()           | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        | -       |
+| fit()             | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        | -       |
+| grid()            | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        | -       |
+| draw()            | +    | -     | -     | +    | -     | -    | -    | -      | -           | -           | -        | -       |
+| interact()        | +    | -     | -     | -    | -     | -    | -    | -      | -           | -           | +        | -       |
+| split()           | +    | -     | +     | -    | -     | -    | -    | -      | -           | -           | -        | -       |
+| group()           | +    | +     | -     | -    | -     | -    | -    | -      | -           | -           | -        | -       |
+| merge()           | +    | -     | -     | -    | +     | -    | -    | -      | -           | -           | -        | -       |
+| fitCanvas()       | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        | -       |
+| dragCanvas()      | +    | -     | -     | -    | -     | -    | +    | -      | -           | +           | -        | -       |
+| zoomCanvas()      | +    | -     | -     | -    | -     | -    | -    | +      | +           | -           | -        | -       |
+| cancel()          | -    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        | -       |
+| configure()       | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        | -       |
+| bitmap()          | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        | -       |
+| setZLayer()       | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        | -       |
+| setupReviewROIs() | +    | +     | +     | +    | +     | +    | +    | +      | +           | +           | +        | -       |
+| combine()         | +    | -     | -     | -    | -     | -    | -    | -      | -           | -           | -        | +       |
 
 <!--lint enable maximum-line-length-->
 

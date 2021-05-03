@@ -182,6 +182,12 @@ const defaultKeyMap = ({
         sequences: ['g'],
         action: 'keydown',
     },
+    SWITCH_COMBINE_MODE: {
+        name: 'Combine mode',
+        description: 'Activate or deactivate mode to combining shapes',
+        sequences: ['ctrl+m'],
+        action: 'keydown',
+    },
     RESET_GROUP: {
         name: 'Reset group',
         description: 'Reset group for selected shapes (in group mode)',
