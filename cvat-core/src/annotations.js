@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Intel Corporation
+// Copyright (C) 2019-2021 Intel Corporation
 //
 // SPDX-License-Identifier: MIT
 
@@ -50,6 +50,7 @@
                 stopFrame,
                 frameMeta,
             });
+            // eslint-disable-next-line no-unsanitized/method
             collection.import(rawAnnotations);
 
             const saver = new AnnotationsSaver(rawAnnotations.version, collection, session);
@@ -159,6 +160,19 @@
         );
     }
 
+    function combineAnnotations(session, objectStates) {
+        const sessionType = session instanceof Task ? 'task' : 'job';
+        const cache = getCache(sessionType);
+
+        if (cache.has(session)) {
+            return cache.get(session).collection.combine(objectStates);
+        }
+
+        throw new DataError(
+            'Collection has not been initialized yet. Call annotations.get() or annotations.clear(true) before',
+        );
+    }
+
     function hasUnsavedChanges(session) {
         const sessionType = session instanceof Task ? 'task' : 'job';
         const cache = getCache(sessionType);
@@ -253,6 +267,7 @@
         const cache = getCache(sessionType);
 
         if (cache.has(session)) {
+            // eslint-disable-next-line no-unsanitized/method
             return cache.get(session).collection.import(data);
         }
 
@@ -363,6 +378,7 @@
         searchEmptyFrame,
         splitAnnotations,
         groupAnnotations,
+        combineAnnotations,
         clearAnnotations,
         annotationsStatistics,
         selectObject,

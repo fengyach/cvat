@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Intel Corporation
+// Copyright (C) 2021 Intel Corporation
 //
 // SPDX-License-Identifier: MIT
 
@@ -215,6 +215,7 @@ function logFactory(logType, payload) {
     const logsWithCount = [
         LogType.deleteObject,
         LogType.mergeObjects,
+        LogType.combineShapes,
         LogType.copyObject,
         LogType.undoAction,
         LogType.redoAction,

@@ -137,6 +137,15 @@
                         return result;
                     },
 
+                    async combine(objectStates) {
+                        const result = await PluginRegistry.apiWrapper.call(
+                            this,
+                            prototype.annotations.combine,
+                            objectStates,
+                        );
+                        return result;
+                    },
+
                     async import(data) {
                         const result = await PluginRegistry.apiWrapper.call(this, prototype.annotations.import, data);
                         return result;
@@ -481,6 +490,19 @@
              * @returns {integer} an ID of created group
              * @throws {module:API.cvat.exceptions.ArgumentError}
              * @throws {module:API.cvat.exceptions.PluginError}
+             * @instance
+             * @async
+             */
+            /**
+             * Method combines multiple polygons into one polyogn
+             * All shapes must be the same (rectangle, polygon, etc)
+             * All labels must be the same
+             * After successful combine you need to update object states on a frame
+             * @method combine
+             * @memberof Session.annotations
+             * @param {module:API.cvat.classes.ObjectState[]} objectStates
+             * @throws {module:API.cvat.exceptions.PluginError}
+             * @throws {module:API.cvat.exceptions.ArgumentError}
              * @instance
              * @async
              */
@@ -883,6 +905,7 @@
                 merge: Object.getPrototypeOf(this).annotations.merge.bind(this),
                 split: Object.getPrototypeOf(this).annotations.split.bind(this),
                 group: Object.getPrototypeOf(this).annotations.group.bind(this),
+                combine: Object.getPrototypeOf(this).annotations.combine.bind(this),
                 clear: Object.getPrototypeOf(this).annotations.clear.bind(this),
                 search: Object.getPrototypeOf(this).annotations.search.bind(this),
                 searchEmpty: Object.getPrototypeOf(this).annotations.searchEmpty.bind(this),
@@ -1576,6 +1599,7 @@
                 merge: Object.getPrototypeOf(this).annotations.merge.bind(this),
                 split: Object.getPrototypeOf(this).annotations.split.bind(this),
                 group: Object.getPrototypeOf(this).annotations.group.bind(this),
+                combine: Object.getPrototypeOf(this).annotations.combine.bind(this),
                 clear: Object.getPrototypeOf(this).annotations.clear.bind(this),
                 search: Object.getPrototypeOf(this).annotations.search.bind(this),
                 searchEmpty: Object.getPrototypeOf(this).annotations.searchEmpty.bind(this),
@@ -1678,6 +1702,7 @@
         mergeAnnotations,
         splitAnnotations,
         groupAnnotations,
+        combineAnnotations,
         clearAnnotations,
         selectObject,
         annotationsStatistics,
@@ -1876,6 +1901,11 @@
 
     Job.prototype.annotations.group.implementation = async function (objectStates, reset) {
         const result = await groupAnnotations(this, objectStates, reset);
+        return result;
+    };
+
+    Job.prototype.annotations.combine.implementation = async function (objectStates) {
+        const result = await combineAnnotations(this, objectStates);
         return result;
     };
 
@@ -2183,6 +2213,11 @@
 
     Task.prototype.annotations.group.implementation = async function (objectStates, reset) {
         const result = await groupAnnotations(this, objectStates, reset);
+        return result;
+    };
+
+    Task.prototype.annotations.combine.implementation = async function (objectStates) {
+        const result = await combineAnnotations(this, objectStates);
         return result;
     };
 
