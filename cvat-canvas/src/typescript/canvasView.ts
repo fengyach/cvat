@@ -1211,7 +1211,7 @@ export class CanvasViewImpl implements CanvasView, Listener {
             }
         } else if (reason === UpdateReasons.IMAGE_MOVED) {
             this.moveCanvas();
-        } else if ([UpdateReasons.OBJECTS_UPDATED].includes(reason)) {
+        } else if (reason === UpdateReasons.OBJECTS_UPDATED) {
             if (this.mode === Mode.GROUP) {
                 this.groupHandler.resetSelectedObjects();
             }
@@ -1495,6 +1495,7 @@ export class CanvasViewImpl implements CanvasView, Listener {
             clientID: state.clientID,
             outside: state.outside,
             occluded: state.occluded,
+            source: state.source,
             hidden: state.hidden,
             lock: state.lock,
             shapeType: state.shapeType,
@@ -1586,13 +1587,22 @@ export class CanvasViewImpl implements CanvasView, Listener {
                 }
             }
 
-            for (const attrID of Object.keys(state.attributes)) {
-                if (state.attributes[attrID] !== drawnState.attributes[+attrID]) {
-                    if (text) {
-                        const [span] = (text.node.querySelectorAll(`[attrID="${attrID}"]`) as any) as SVGTSpanElement[];
-                        if (span && span.textContent) {
-                            const prefix = span.textContent.split(':').slice(0, -1).join(':');
-                            span.textContent = `${prefix}: ${state.attributes[attrID]}`;
+            if (drawnState.label.id !== state.label.id) {
+                // need to remove created text and create it again
+                if (text) {
+                    text.remove();
+                    this.svgTexts[state.clientID] = this.addText(state);
+                }
+            } else {
+                // check if there are updates in attributes
+                for (const attrID of Object.keys(state.attributes)) {
+                    if (state.attributes[attrID] !== drawnState.attributes[+attrID]) {
+                        if (text) {
+                            const [span] = text.node.querySelectorAll<SVGTSpanElement>(`[attrID="${attrID}"]`);
+                            if (span && span.textContent) {
+                                const prefix = span.textContent.split(':').slice(0, -1).join(':');
+                                span.textContent = `${prefix}: ${state.attributes[attrID]}`;
+                            }
                         }
                     }
                 }
