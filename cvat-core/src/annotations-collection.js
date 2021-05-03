@@ -30,6 +30,7 @@
     } = require('./enums');
     const ObjectState = require('./object-state');
     const union = require('@turf/union').default;
+    const difference = require('@turf/difference').default;
     const turf = require('@turf/helpers');
 
     function shapeFactory(shapeData, clientID, injection) {
@@ -93,6 +94,34 @@
         return null;
     }
 
+    function shapeToGeo(shape) {
+        if (shape.points.length < 1 || shape.points.length % 2 !== 0) {
+            throw new ArgumentError('Invalid Polygon!');
+        }
+        const coordinates = [];
+        for (let i = 0; i < shape.points.length - 1; i += 2) {
+            coordinates.push([shape.points[i], shape.points[i + 1]]);
+        }
+        coordinates.push(coordinates[0]);
+        const geo = turf.polygon([coordinates]);
+        return geo;
+    }
+
+    function geoToShape(geo, shape) {
+        const pointsArray = [];
+        if (geo.geometry.coordinates[0].length < 1) {
+            throw new ArgumentError('Invalid geo type!');
+        } else {
+            for (let i = 0; i < geo.geometry.coordinates[0].length - 1; i++) {
+                for (let j = 0; j < 2; j++) {
+                    pointsArray.push(geo.geometry.coordinates[0][i][j]);
+                }
+            }
+        }
+        shape.points = [...pointsArray];
+        return shape;
+    }
+
     class Collection {
         constructor(data) {
             this.startFrame = data.startFrame;
@@ -108,6 +137,7 @@
             this.history = data.history;
             this.shapes = {}; // key is a frame
             this.shapes_to_combine = [];
+            this.shapes_to_subtract = [];
             this.tags = {}; // key is a frame
             this.tracks = [];
             this.objects = {}; // key is a client id
@@ -449,34 +479,6 @@
                 return accumulator;
             }, {});
 
-            function shapeToGeo(shape) {
-                if (shape.points.length < 1 || shape.points.length % 2 !== 0) {
-                    throw new ArgumentError('Invalid Polygon!');
-                }
-                const coordinates = [];
-                for (let i = 0; i < shape.points.length - 1; i += 2) {
-                    coordinates.push([shape.points[i], shape.points[i + 1]]);
-                }
-                coordinates.push(coordinates[0]);
-                const geo = turf.polygon([coordinates]);
-                return geo;
-            }
-
-            function geoToShape(geo, shape) {
-                const pointsArray = [];
-                if (geo.geometry.coordinates[0].length < 1) {
-                    throw new ArgumentError('Invalid geo type!');
-                } else {
-                    for (let i = 0; i < geo.geometry.coordinates[0].length - 1; i++) {
-                        for (let j = 0; j < 2; j++) {
-                            pointsArray.push(geo.geometry.coordinates[0][i][j]);
-                        }
-                    }
-                }
-                shape.points = [...pointsArray];
-                return shape;
-            }
-
             for (let i = 0; i < objectsToCombine.length; i++) {
                 // For each state get corresponding object
                 const object = objectsToCombine[i];
@@ -552,12 +554,14 @@
                     );
                 }
             }
+
             let newpoly = union(this.shapes_to_combine[0], this.shapes_to_combine[1]);
             if (this.shapes_to_combine.length > 2) {
                 for (let i = 2; i < this.shapes_to_combine.length; i++) {
                     newpoly = union(newpoly, this.shapes_to_combine[i]);
                 }
             }
+
             const clientID = ++this.count;
             const track = {
                 frame: Math.min.apply(
@@ -579,6 +583,7 @@
                     return accumulator;
                 }, []),
             };
+
             geoToShape(newpoly, track.shapes[0]);
             const trackModel = trackFactory(track, clientID, this.injection);
             this.tracks.push(trackModel);
@@ -606,6 +611,174 @@
                     }
                 },
                 [...objectsToCombine.map((object) => object.clientID), trackModel.clientID],
+                objectStates[0].frame,
+            );
+        }
+
+        subtract(objectStates) {
+            checkObjectType('shapes for merge', objectStates, null, Array);
+            if (!objectStates.length) return;
+            const objectsToSubtract = objectStates.map((state) => {
+                checkObjectType('object state', state, null, ObjectState);
+                const object = this.objects[state.clientID];
+                if (typeof object === 'undefined') {
+                    throw new ArgumentError(
+                        'The object has not been saved yet. Call ObjectState.put([state]) before you can merge it',
+                    );
+                }
+                return object;
+            });
+
+            const keyframes = {}; // frame: position
+            const { label, shapeType } = objectStates[0];
+            if (!(label.id in this.labels)) {
+                throw new ArgumentError(`Unknown label for the task: ${label.id}`);
+            }
+
+            if (!Object.values(ObjectShape).includes(shapeType)) {
+                throw new ArgumentError(`Got unknown shapeType "${shapeType}"`);
+            }
+
+            const labelAttributes = label.attributes.reduce((accumulator, attribute) => {
+                accumulator[attribute.id] = attribute;
+                return accumulator;
+            }, {});
+
+            for (let i = 0; i < objectsToSubtract.length; i++) {
+                // For each state get corresponding object
+                const object = objectsToSubtract[i];
+                const state = objectStates[i];
+                if (state.label.id !== label.id) {
+                    throw new ArgumentError(
+                        `All shape labels are expected to be ${label.name}, but got ${state.label.name}`,
+                    );
+                }
+
+                if (state.shapeType !== shapeType) {
+                    throw new ArgumentError(`All shapes are expected to be ${shapeType}, but got ${state.shapeType}`);
+                }
+
+                // If this object is shape, get it position and save as a keyframe
+                if (object instanceof Shape) {
+                    keyframes[object.frame] = {
+                        type: shapeType,
+                        frame: object.frame,
+                        points: [...object.points],
+                        occluded: object.occluded,
+                        zOrder: object.zOrder,
+                        outside: false,
+                        attributes: Object.keys(object.attributes).reduce((accumulator, attrID) => {
+                            // We save only mutable attributes inside a keyframe
+                            if (attrID in labelAttributes && labelAttributes[attrID].mutable) {
+                                accumulator.push({
+                                    spec_id: +attrID,
+                                    value: object.attributes[attrID],
+                                });
+                            }
+                            return accumulator;
+                        }, []),
+                    };
+                    this.shapes_to_subtract.push(shapeToGeo(object));
+                } else if (object instanceof Track) {
+                    // If this object is track, iterate through all its
+                    // keyframes and push copies to new keyframes
+                    const attributes = {}; // id:value
+                    for (const keyframe of Object.keys(object.shapes)) {
+                        const shape = object.shapes[keyframe];
+                        // We do not save an attribute if it has the same value
+                        // We save only updates
+                        let updatedAttributes = false;
+                        for (const attrID in shape.attributes) {
+                            if (!(attrID in attributes) || attributes[attrID] !== shape.attributes[attrID]) {
+                                updatedAttributes = true;
+                                attributes[attrID] = shape.attributes[attrID];
+                            }
+                        }
+
+                        keyframes[keyframe] = {
+                            type: shapeType,
+                            frame: +keyframe,
+                            points: [...shape.points],
+                            occluded: shape.occluded,
+                            outside: shape.outside,
+                            zOrder: shape.zOrder,
+                            attributes: updatedAttributes
+                                ? Object.keys(attributes).reduce((accumulator, attrID) => {
+                                    accumulator.push({
+                                        spec_id: +attrID,
+                                        value: attributes[attrID],
+                                    });
+
+                                    return accumulator;
+                                }, [])
+                                : [],
+                        };
+                    }
+                    this.shapes_to_subtract.push(shapeToGeo(object.shapes[0]));
+                } else {
+                    throw new ArgumentError(
+                        `Trying to merge unknown object type: ${object.constructor.name}. `
+                            + 'Only shapes and tracks are expected.',
+                    );
+                }
+            }
+
+            let newpoly = difference(this.shapes_to_subtract[0], this.shapes_to_subtract[1]);
+            if (this.shapes_to_subtract.length > 2) {
+                for (let i = 2; i < this.shapes_to_subtract.length; i++) {
+                    newpoly = difference(newpoly, this.shapes_to_subtract[i]);
+                }
+            }
+
+            const clientID = ++this.count;
+            const track = {
+                frame: Math.min.apply(
+                    null,
+                    Object.keys(keyframes).map((frame) => +frame),
+                ),
+                shapes: Object.values(keyframes),
+                group: 0,
+                source: objectStates[0].source,
+                label_id: label.id,
+                attributes: Object.keys(objectStates[0].attributes).reduce((accumulator, attrID) => {
+                    if (!labelAttributes[attrID].mutable) {
+                        accumulator.push({
+                            spec_id: +attrID,
+                            value: objectStates[0].attributes[attrID],
+                        });
+                    }
+
+                    return accumulator;
+                }, []),
+            };
+
+            geoToShape(newpoly, track.shapes[0]);
+            const trackModel = trackFactory(track, clientID, this.injection);
+            this.tracks.push(trackModel);
+            this.objects[clientID] = trackModel;
+
+            // Remove other shapes
+            for (const object of objectsToSubtract) {
+                object.removed = true;
+            }
+            // Clear the cache
+            this.shapes_to_subtract.length = 0;
+
+            this.history.do(
+                HistoryActions.MERGED_OBJECTS,
+                () => {
+                    trackModel.removed = true;
+                    for (const object of objectsToSubtract) {
+                        object.removed = false;
+                    }
+                },
+                () => {
+                    trackModel.removed = false;
+                    for (const object of objectsToSubtract) {
+                        object.removed = true;
+                    }
+                },
+                [...objectsToSubtract.map((object) => object.clientID), trackModel.clientID],
                 objectStates[0].frame,
             );
         }

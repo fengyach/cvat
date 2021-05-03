@@ -33,6 +33,7 @@
     "webpack-cli": "^3.3.2"
   },
   "dependencies": {
+    "@turf/difference": "^6.3.0",
     "@turf/helpers": "^6.3.0",
     "@turf/union": "^6.3.0",
     "axios": "^0.21.1",

@@ -173,6 +173,19 @@
         );
     }
 
+    function subtractAnnotations(session, objectStates) {
+        const sessionType = session instanceof Task ? 'task' : 'job';
+        const cache = getCache(sessionType);
+
+        if (cache.has(session)) {
+            return cache.get(session).collection.subtract(objectStates);
+        }
+
+        throw new DataError(
+            'Collection has not been initialized yet. Call annotations.get() or annotations.clear(true) before',
+        );
+    }
+
     function hasUnsavedChanges(session) {
         const sessionType = session instanceof Task ? 'task' : 'job';
         const cache = getCache(sessionType);
@@ -379,6 +392,7 @@
         splitAnnotations,
         groupAnnotations,
         combineAnnotations,
+        subtractAnnotations,
         clearAnnotations,
         annotationsStatistics,
         selectObject,

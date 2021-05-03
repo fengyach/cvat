@@ -190,6 +190,7 @@
         * @property {string} lockObject Lock object
         * @property {string} mergeObjects Merge objects
         * @property {string} combineShapes Combine shapes
+        * @property {string} subtractShapes Subtract shapes
         * @property {string} changeAttribute Change attribute
         * @property {string} changeLabel Change label
 
@@ -225,6 +226,7 @@
         lockObject: 'Lock object',
         mergeObjects: 'Merge objects',
         combineShapes: 'Combine shapes',
+        subtractShapes: 'Subtract shapes',
         changeAttribute: 'Change attribute',
         changeLabel: 'Change label',
 
@@ -258,6 +260,7 @@
      * @property {string} CHANGED_SOURCE Changed source
      * @property {string} MERGED_OBJECTS Merged objects
      * @property {string} COMBINED_SHAPES Combined shapes
+     * @property {string} SUBTRACTED_SHAPES Subtracted shapes
      * @property {string} SPLITTED_TRACK Splitted track
      * @property {string} GROUPED_OBJECTS Grouped objects
      * @property {string} CREATED_OBJECTS Created objects
@@ -279,6 +282,7 @@
         CHANGED_SOURCE: 'Changed source',
         MERGED_OBJECTS: 'Merged objects',
         COMBINED_SHAPES: 'Combined shapes',
+        SUBTRACTED_SHAPES: 'Subtracted shapes',
         SPLITTED_TRACK: 'Splitted track',
         GROUPED_OBJECTS: 'Grouped objects',
         CREATED_OBJECTS: 'Created objects',

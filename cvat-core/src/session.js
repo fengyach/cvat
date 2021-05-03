@@ -146,6 +146,15 @@
                         return result;
                     },
 
+                    async subtract(objectStates) {
+                        const result = await PluginRegistry.apiWrapper.call(
+                            this,
+                            prototype.annotations.subtract,
+                            objectStates,
+                        );
+                        return result;
+                    },
+
                     async import(data) {
                         const result = await PluginRegistry.apiWrapper.call(this, prototype.annotations.import, data);
                         return result;
@@ -499,6 +508,19 @@
              * All labels must be the same
              * After successful combine you need to update object states on a frame
              * @method combine
+             * @memberof Session.annotations
+             * @param {module:API.cvat.classes.ObjectState[]} objectStates
+             * @throws {module:API.cvat.exceptions.PluginError}
+             * @throws {module:API.cvat.exceptions.ArgumentError}
+             * @instance
+             * @async
+             */
+            /**
+             * Method subtracts overlapped area of two polygons from one polyogn
+             * All shapes must be the same (rectangle, polygon, etc)
+             * All labels must be the same
+             * After successful subtraction you need to update object states on a frame
+             * @method subtract
              * @memberof Session.annotations
              * @param {module:API.cvat.classes.ObjectState[]} objectStates
              * @throws {module:API.cvat.exceptions.PluginError}
@@ -906,6 +928,7 @@
                 split: Object.getPrototypeOf(this).annotations.split.bind(this),
                 group: Object.getPrototypeOf(this).annotations.group.bind(this),
                 combine: Object.getPrototypeOf(this).annotations.combine.bind(this),
+                subtract: Object.getPrototypeOf(this).annotations.subtract.bind(this),
                 clear: Object.getPrototypeOf(this).annotations.clear.bind(this),
                 search: Object.getPrototypeOf(this).annotations.search.bind(this),
                 searchEmpty: Object.getPrototypeOf(this).annotations.searchEmpty.bind(this),
@@ -1600,6 +1623,7 @@
                 split: Object.getPrototypeOf(this).annotations.split.bind(this),
                 group: Object.getPrototypeOf(this).annotations.group.bind(this),
                 combine: Object.getPrototypeOf(this).annotations.combine.bind(this),
+                subtract: Object.getPrototypeOf(this).annotations.subtract.bind(this),
                 clear: Object.getPrototypeOf(this).annotations.clear.bind(this),
                 search: Object.getPrototypeOf(this).annotations.search.bind(this),
                 searchEmpty: Object.getPrototypeOf(this).annotations.searchEmpty.bind(this),
@@ -1703,6 +1727,7 @@
         splitAnnotations,
         groupAnnotations,
         combineAnnotations,
+        subtractAnnotations,
         clearAnnotations,
         selectObject,
         annotationsStatistics,
@@ -1906,6 +1931,11 @@
 
     Job.prototype.annotations.combine.implementation = async function (objectStates) {
         const result = await combineAnnotations(this, objectStates);
+        return result;
+    };
+
+    Job.prototype.annotations.subtract.implementation = async function (objectStates) {
+        const result = await subtractAnnotations(this, objectStates);
         return result;
     };
 
@@ -2218,6 +2248,11 @@
 
     Task.prototype.annotations.combine.implementation = async function (objectStates) {
         const result = await combineAnnotations(this, objectStates);
+        return result;
+    };
+
+    Task.prototype.annotations.subtract.implementation = async function (objectStates) {
+        const result = await subtractAnnotations(this, objectStates);
         return result;
     };
 

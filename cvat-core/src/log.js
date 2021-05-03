@@ -216,6 +216,7 @@ function logFactory(logType, payload) {
         LogType.deleteObject,
         LogType.mergeObjects,
         LogType.combineShapes,
+        LogType.subtractShapes,
         LogType.copyObject,
         LogType.undoAction,
         LogType.redoAction,
