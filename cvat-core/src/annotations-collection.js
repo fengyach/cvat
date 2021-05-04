@@ -454,24 +454,64 @@
                     throw new ArgumentError('Invalid Polygon!');
                 }
                 const coordinates = [];
-                for (let i = 0; i < shape.points.length - 1; i += 2) {
-                    coordinates.push([shape.points[i], shape.points[i + 1]]);
+                let geo = [];
+                if (shape.shapeType === 'polygon') {
+                    for (let i = 0; i < shape.points.length - 1; i += 2) {
+                        coordinates.push([shape.points[i], shape.points[i + 1]]);
+                    }
+                } else if (shape.shapeType === 'rectangle') {
+                    coordinates.push([shape.points[0], shape.points[1]]);
+                    coordinates.push([shape.points[0], shape.points[3]]);
+                    coordinates.push([shape.points[2], shape.points[3]]);
+                    coordinates.push([shape.points[2], shape.points[1]]);
+                    console.log(coordinates);
+                } else {
+                    throw new ArgumentError('Not supported shape type!');
                 }
+                // close the polygon
                 coordinates.push(coordinates[0]);
-                const geo = turf.polygon([coordinates]);
+                geo = turf.polygon([coordinates]);
+                return geo;
+            }
+
+            function trackToGeo(track) {
+                if (track.shapes[0].points.length < 1 || track.shapes[0].points.length % 2 !== 0) {
+                    throw new ArgumentError('Invalid Polygon!');
+                }
+                const coordinates = [];
+                let geo = [];
+                if (track.shapeType === 'polygon') {
+                    for (let i = 0; i < track.shapes[0].points.length - 1; i += 2) {
+                        coordinates.push([track.shapes[0].points[i], track.shapes[0].points[i + 1]]);
+                    }
+                } else if (track.shapeType === 'rectangle') {
+                    coordinates.push([track.shapes[0].points[0], track.shapes[0].points[1]]);
+                    coordinates.push([track.shapes[0].points[0], track.shapes[0].points[3]]);
+                    coordinates.push([track.shapes[0].points[2], track.shapes[0].points[3]]);
+                    coordinates.push([track.shapes[0].points[2], track.shapes[0].points[1]]);
+                } else {
+                    throw new ArgumentError('Not supported shape type!');
+                }
+                // close the polygon
+                coordinates.push(coordinates[0]);
+                geo = turf.polygon([coordinates]);
                 return geo;
             }
 
             function geoToShape(geo, shape) {
                 const pointsArray = [];
-                if (geo.geometry.coordinates[0].length < 1) {
-                    throw new ArgumentError('Invalid geo type!');
-                } else {
-                    for (let i = 0; i < geo.geometry.coordinates[0].length - 1; i++) {
-                        for (let j = 0; j < 2; j++) {
-                            pointsArray.push(geo.geometry.coordinates[0][i][j]);
+                if (geo.geometry.coordinates.length === 1) {
+                    if (geo.geometry.coordinates[0].length < 1) {
+                        throw new ArgumentError('Invalid geo type!');
+                    } else {
+                        for (let i = 0; i < geo.geometry.coordinates[0].length - 1; i++) {
+                            for (let j = 0; j < 2; j++) {
+                                pointsArray.push(geo.geometry.coordinates[0][i][j]);
+                            }
                         }
                     }
+                } else {
+                    throw new ArgumentError('Invalid geo type!');
                 }
                 shape.points = [...pointsArray];
                 return shape;
@@ -493,7 +533,8 @@
                 // If this object is shape, get it position and save as a keyframe
                 if (object instanceof Shape) {
                     keyframes[object.frame] = {
-                        type: shapeType,
+                        // after combining all shapes will be set to polygon
+                        type: 'polygon',
                         frame: object.frame,
                         points: [...object.points],
                         occluded: object.occluded,
@@ -526,7 +567,7 @@
                         }
 
                         keyframes[keyframe] = {
-                            type: shapeType,
+                            type: 'polygon',
                             frame: +keyframe,
                             points: [...shape.points],
                             occluded: shape.occluded,
@@ -544,7 +585,7 @@
                                 : [],
                         };
                     }
-                    this.shapes_to_combine.push(shapeToGeo(object.shapes[0]));
+                    this.shapes_to_combine.push(trackToGeo(object));
                 } else {
                     throw new ArgumentError(
                         `Trying to combine unknown object type: ${object.constructor.name}. `
