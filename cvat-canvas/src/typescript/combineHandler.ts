@@ -23,14 +23,14 @@ export class CombineHandlerImpl implements CombineHandler {
     private highlightedShapes: Record<number, SVG.Shape>;
     private constraints: {
         labelID: number;
-        shapeType: string;
+        frame: number;
     };
 
     private addConstraints(): void {
         const shape = this.statesToBeCombined[0];
         this.constraints = {
             labelID: shape.label.id,
-            shapeType: shape.shapeType,
+            frame: shape.frame,
         };
     }
 
@@ -41,7 +41,7 @@ export class CombineHandlerImpl implements CombineHandler {
     private checkConstraints(state: any): boolean {
         return (
             !this.constraints
-            || (state.label.id === this.constraints.labelID && state.shapeType === this.constraints.shapeType)
+            || (state.label.id === this.constraints.labelID && state.frame === this.constraints.frame)
         );
     }
 

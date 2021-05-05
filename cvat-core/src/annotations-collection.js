@@ -436,6 +436,7 @@
 
             const keyframes = {}; // frame: position
             const { label, shapeType } = objectStates[0];
+            const anchorFrame = objectStates[0].frame;
             if (!(label.id in this.labels)) {
                 throw new ArgumentError(`Unknown label for the task: ${label.id}`);
             }
@@ -464,7 +465,6 @@
                     coordinates.push([shape.points[0], shape.points[3]]);
                     coordinates.push([shape.points[2], shape.points[3]]);
                     coordinates.push([shape.points[2], shape.points[1]]);
-                    console.log(coordinates);
                 } else {
                     throw new ArgumentError('Not supported shape type!');
                 }
@@ -521,14 +521,17 @@
                 // For each state get corresponding object
                 const object = objectsToCombine[i];
                 const state = objectStates[i];
+                console.log(object);
+                console.log(state);
+                console.log(anchorFrame);
+                console.log(state.frame);
                 if (state.label.id !== label.id) {
                     throw new ArgumentError(
                         `All shape labels are expected to be ${label.name}, but got ${state.label.name}`,
                     );
                 }
-
-                if (state.shapeType !== shapeType) {
-                    throw new ArgumentError(`All shapes are expected to be ${shapeType}, but got ${state.shapeType}`);
+                if (state.frame !== anchorFrame) {
+                    throw new ArgumentError('All polygons to be combined must be in the same frame!');
                 }
                 // If this object is shape, get it position and save as a keyframe
                 if (object instanceof Shape) {
@@ -620,6 +623,7 @@
                     return accumulator;
                 }, []),
             };
+            console.log(track);
             geoToShape(newpoly, track.shapes[0]);
             const trackModel = trackFactory(track, clientID, this.injection);
             this.tracks.push(trackModel);
