@@ -435,7 +435,7 @@
             });
 
             const keyframes = {}; // frame: position
-            const { label, shapeType } = objectStates[0];
+            const { label, shapeType, objectType } = objectStates[0];
             const anchorFrame = objectStates[0].frame;
             if (!(label.id in this.labels)) {
                 throw new ArgumentError(`Unknown label for the task: ${label.id}`);
@@ -521,10 +521,6 @@
                 // For each state get corresponding object
                 const object = objectsToCombine[i];
                 const state = objectStates[i];
-                console.log(object);
-                console.log(state);
-                console.log(anchorFrame);
-                console.log(state.frame);
                 if (state.label.id !== label.id) {
                     throw new ArgumentError(
                         `All shape labels are expected to be ${label.name}, but got ${state.label.name}`,
@@ -532,6 +528,9 @@
                 }
                 if (state.frame !== anchorFrame) {
                     throw new ArgumentError('All polygons to be combined must be in the same frame!');
+                }
+                if (state.objectType !== objectType) {
+                    throw new ArgumentError('All polygons to be combined must be of the same object type!');
                 }
                 // If this object is shape, get it position and save as a keyframe
                 if (object instanceof Shape) {

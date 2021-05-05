@@ -24,6 +24,7 @@ export class CombineHandlerImpl implements CombineHandler {
     private constraints: {
         labelID: number;
         frame: number;
+        objectType: string;
     };
 
     private addConstraints(): void {
@@ -31,6 +32,7 @@ export class CombineHandlerImpl implements CombineHandler {
         this.constraints = {
             labelID: shape.label.id,
             frame: shape.frame,
+            objectType: shape.objectType,
         };
     }
 
@@ -41,7 +43,9 @@ export class CombineHandlerImpl implements CombineHandler {
     private checkConstraints(state: any): boolean {
         return (
             !this.constraints
-            || (state.label.id === this.constraints.labelID && state.frame === this.constraints.frame)
+            || (state.label.id === this.constraints.labelID
+                && state.frame === this.constraints.frame
+                && state.objectType === this.constraints.objectType)
         );
     }
 
