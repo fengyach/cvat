@@ -107,7 +107,6 @@
             this.annotationsFilter = new AnnotationsFilter();
             this.history = data.history;
             this.shapes = {}; // key is a frame
-            this.shapes_to_combine = [];
             this.tags = {}; // key is a frame
             this.tracks = [];
             this.objects = {}; // key is a client id
@@ -433,10 +432,11 @@
                 }
                 return object;
             });
-
+            const shapesToCombine = [];
             const keyframes = {}; // frame: position
-            const { label, shapeType, objectType } = objectStates[0];
+            const { label, shapeType } = objectStates[0];
             const anchorFrame = objectStates[0].frame;
+            const typeCollection = [];
             if (!(label.id in this.labels)) {
                 throw new ArgumentError(`Unknown label for the task: ${label.id}`);
             }
@@ -475,20 +475,20 @@
             }
 
             function trackToGeo(track) {
-                if (track.shapes[0].points.length < 1 || track.shapes[0].points.length % 2 !== 0) {
+                if (track.shapes[track.frame].points.length < 1 || track.shapes[track.frame].points.length % 2 !== 0) {
                     throw new ArgumentError('Invalid Polygon!');
                 }
                 const coordinates = [];
                 let geo = [];
                 if (track.shapeType === 'polygon') {
-                    for (let i = 0; i < track.shapes[0].points.length - 1; i += 2) {
-                        coordinates.push([track.shapes[0].points[i], track.shapes[0].points[i + 1]]);
+                    for (let i = 0; i < track.shapes[track.frame].points.length - 1; i += 2) {
+                        coordinates.push([track.shapes[track.frame].points[i], track.shapes[0].points[i + 1]]);
                     }
                 } else if (track.shapeType === 'rectangle') {
-                    coordinates.push([track.shapes[0].points[0], track.shapes[0].points[1]]);
-                    coordinates.push([track.shapes[0].points[0], track.shapes[0].points[3]]);
-                    coordinates.push([track.shapes[0].points[2], track.shapes[0].points[3]]);
-                    coordinates.push([track.shapes[0].points[2], track.shapes[0].points[1]]);
+                    coordinates.push([track.shapes[track.frame].points[0], track.shapes[track.frame].points[1]]);
+                    coordinates.push([track.shapes[track.frame].points[0], track.shapes[track.frame].points[3]]);
+                    coordinates.push([track.shapes[track.frame].points[2], track.shapes[track.frame].points[3]]);
+                    coordinates.push([track.shapes[track.frame].points[2], track.shapes[track.frame].points[1]]);
                 } else {
                     throw new ArgumentError('Not supported shape type!');
                 }
@@ -529,9 +529,6 @@
                 if (state.frame !== anchorFrame) {
                     throw new ArgumentError('All polygons to be combined must be in the same frame!');
                 }
-                if (state.objectType !== objectType) {
-                    throw new ArgumentError('All polygons to be combined must be of the same object type!');
-                }
                 // If this object is shape, get it position and save as a keyframe
                 if (object instanceof Shape) {
                     keyframes[object.frame] = {
@@ -542,6 +539,9 @@
                         occluded: object.occluded,
                         zOrder: object.zOrder,
                         outside: false,
+                        group: 0,
+                        source: objectStates[0].source,
+                        label_id: label.id,
                         attributes: Object.keys(object.attributes).reduce((accumulator, attrID) => {
                             // We save only mutable attributes inside a keyframe
                             if (attrID in labelAttributes && labelAttributes[attrID].mutable) {
@@ -553,7 +553,8 @@
                             return accumulator;
                         }, []),
                     };
-                    this.shapes_to_combine.push(shapeToGeo(object));
+                    shapesToCombine.push(shapeToGeo(object));
+                    typeCollection.push(state.objectType);
                 } else if (object instanceof Track) {
                     // If this object is track, iterate through all its
                     // keyframes and push copies to new keyframes
@@ -569,7 +570,7 @@
                         }
 
                         keyframes[keyframe] = {
-                            type: 'polygon',
+                            type: 'polygon', // after combining all shapes are polygons
                             frame: +keyframe,
                             points: [...shape.points],
                             occluded: shape.occluded,
@@ -587,7 +588,8 @@
                                 : [],
                         };
                     }
-                    this.shapes_to_combine.push(trackToGeo(object));
+                    shapesToCombine.push(trackToGeo(object));
+                    typeCollection.push(state.objectType);
                 } else {
                     throw new ArgumentError(
                         `Trying to combine unknown object type: ${object.constructor.name}. `
@@ -595,61 +597,70 @@
                     );
                 }
             }
-            let newpoly = union(this.shapes_to_combine[0], this.shapes_to_combine[1]);
-            if (this.shapes_to_combine.length > 2) {
-                for (let i = 2; i < this.shapes_to_combine.length; i++) {
-                    newpoly = union(newpoly, this.shapes_to_combine[i]);
+            let newpoly = union(shapesToCombine[0], shapesToCombine[1]);
+            if (shapesToCombine.length > 2) {
+                for (let i = 2; i < shapesToCombine.length; i++) {
+                    newpoly = union(newpoly, shapesToCombine[i]);
                 }
             }
             const clientID = ++this.count;
-            const track = {
-                frame: Math.min.apply(
-                    null,
-                    Object.keys(keyframes).map((frame) => +frame),
-                ),
-                shapes: Object.values(keyframes),
-                group: 0,
-                source: objectStates[0].source,
-                label_id: label.id,
-                attributes: Object.keys(objectStates[0].attributes).reduce((accumulator, attrID) => {
-                    if (!labelAttributes[attrID].mutable) {
-                        accumulator.push({
-                            spec_id: +attrID,
-                            value: objectStates[0].attributes[attrID],
-                        });
-                    }
-
-                    return accumulator;
-                }, []),
-            };
-            console.log(track);
-            geoToShape(newpoly, track.shapes[0]);
-            const trackModel = trackFactory(track, clientID, this.injection);
-            this.tracks.push(trackModel);
-            this.objects[clientID] = trackModel;
-
+            let trackModel = {};
+            let shapeModel = {};
+            let objectModel = {};
+            let track = {};
+            // let shape = {};
+            if (typeCollection.includes('track')) {
+                track = {
+                    frame: Math.min.apply(
+                        null,
+                        Object.keys(keyframes).map((frame) => +frame),
+                    ),
+                    shapes: Object.values(keyframes),
+                    group: 0,
+                    source: objectStates[0].source,
+                    label_id: label.id,
+                    attributes: Object.keys(objectStates[0].attributes).reduce((accumulator, attrID) => {
+                        if (!labelAttributes[attrID].mutable) {
+                            accumulator.push({
+                                spec_id: +attrID,
+                                value: objectStates[0].attributes[attrID],
+                            });
+                        }
+                        return accumulator;
+                    }, []),
+                };
+                geoToShape(newpoly, track.shapes[0]);
+                trackModel = trackFactory(track, clientID, this.injection);
+                objectModel = trackModel;
+                this.tracks.push(trackModel);
+                this.objects[clientID] = trackModel;
+            } else {
+                geoToShape(newpoly, keyframes[anchorFrame]);
+                shapeModel = shapeFactory(keyframes[anchorFrame], clientID, this.injection);
+                objectModel = shapeModel;
+                this.shapes[shapeModel.frame].push(shapeModel);
+                this.objects[clientID] = shapeModel;
+            }
             // Remove other shapes
             for (const object of objectsToCombine) {
                 object.removed = true;
             }
-            // Clear the cache
-            this.shapes_to_combine.length = 0;
 
             this.history.do(
                 HistoryActions.COMBINED_SHAPES,
                 () => {
-                    trackModel.removed = true;
+                    objectModel.removed = true;
                     for (const object of objectsToCombine) {
                         object.removed = false;
                     }
                 },
                 () => {
-                    trackModel.removed = false;
+                    objectModel.removed = false;
                     for (const object of objectsToCombine) {
                         object.removed = true;
                     }
                 },
-                [...objectsToCombine.map((object) => object.clientID), trackModel.clientID],
+                [...objectsToCombine.map((object) => object.clientID), objectModel.clientID],
                 objectStates[0].frame,
             );
         }
