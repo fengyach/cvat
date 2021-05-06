@@ -434,9 +434,8 @@
             });
             const shapesToCombine = [];
             const keyframes = {}; // frame: position
-            const { label, shapeType } = objectStates[0];
+            const { label, shapeType, objectType } = objectStates[0];
             const anchorFrame = objectStates[0].frame;
-            const typeCollection = [];
             if (!(label.id in this.labels)) {
                 throw new ArgumentError(`Unknown label for the task: ${label.id}`);
             }
@@ -554,7 +553,6 @@
                         }, []),
                     };
                     shapesToCombine.push(shapeToGeo(object));
-                    typeCollection.push(state.objectType);
                 } else if (object instanceof Track) {
                     // If this object is track, iterate through all its
                     // keyframes and push copies to new keyframes
@@ -589,7 +587,6 @@
                         };
                     }
                     shapesToCombine.push(trackToGeo(object));
-                    typeCollection.push(state.objectType);
                 } else {
                     throw new ArgumentError(
                         `Trying to combine unknown object type: ${object.constructor.name}. `
@@ -608,8 +605,7 @@
             let shapeModel = {};
             let objectModel = {};
             let track = {};
-            // let shape = {};
-            if (typeCollection.includes('track')) {
+            if (objectType === 'track') {
                 track = {
                     frame: Math.min.apply(
                         null,
@@ -634,12 +630,14 @@
                 objectModel = trackModel;
                 this.tracks.push(trackModel);
                 this.objects[clientID] = trackModel;
-            } else {
+            } else if (objectType === 'shape') {
                 geoToShape(newpoly, keyframes[anchorFrame]);
                 shapeModel = shapeFactory(keyframes[anchorFrame], clientID, this.injection);
                 objectModel = shapeModel;
                 this.shapes[shapeModel.frame].push(shapeModel);
                 this.objects[clientID] = shapeModel;
+            } else {
+                throw new ArgumentError('Not supported object type!');
             }
             // Remove other shapes
             for (const object of objectsToCombine) {
