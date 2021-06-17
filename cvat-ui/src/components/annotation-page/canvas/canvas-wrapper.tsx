@@ -14,10 +14,12 @@ import {
 } from 'reducers/interfaces';
 import { LogType } from 'cvat-logger';
 import { Canvas } from 'cvat-canvas-wrapper';
+import { Canvas3d } from 'cvat-canvas3d-wrapper';
 import getCore from 'cvat-core-wrapper';
 import consts from 'consts';
 import CVATTooltip from 'components/common/cvat-tooltip';
 import ImageSetupsContent from './image-setups-content';
+import ContextImage from '../standard-workspace/context-image/context-image';
 
 const cvat = getCore();
 
@@ -25,7 +27,7 @@ const MAX_DISTANCE_TO_OPEN_SHAPE = 50;
 
 interface Props {
     sidebarCollapsed: boolean;
-    canvasInstance: Canvas;
+    canvasInstance: Canvas | Canvas3d;
     jobInstance: any;
     activatedStateID: number | null;
     activatedAttributeID: number | null;
@@ -104,10 +106,10 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
             automaticBordering,
             intelligentPolygonCrop,
             showObjectsTextAlways,
-            canvasInstance,
             workspace,
             showProjections,
         } = this.props;
+        const { canvasInstance } = this.props as { canvasInstance: Canvas };
 
         // It's awful approach from the point of view React
         // But we do not have another way because cvat-canvas returns regular DOM element
@@ -140,7 +142,6 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
             frameData,
             frameAngle,
             annotations,
-            canvasInstance,
             sidebarCollapsed,
             activatedStateID,
             curZLayer,
@@ -162,7 +163,7 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
             canvasBackgroundColor,
             onFetchAnnotation,
         } = this.props;
-
+        const { canvasInstance } = this.props as { canvasInstance: Canvas };
         if (
             prevProps.showObjectsTextAlways !== showObjectsTextAlways ||
             prevProps.automaticBordering !== automaticBordering ||
@@ -307,7 +308,7 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
     }
 
     public componentWillUnmount(): void {
-        const { canvasInstance } = this.props;
+        const { canvasInstance } = this.props as { canvasInstance: Canvas };
 
         canvasInstance.html().removeEventListener('mousedown', this.onCanvasMouseDown);
         canvasInstance.html().removeEventListener('click', this.onCanvasClicked);
@@ -449,7 +450,8 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
     };
 
     private onCanvasClicked = (): void => {
-        const { canvasInstance, onUpdateContextMenu } = this.props;
+        const { onUpdateContextMenu } = this.props;
+        const { canvasInstance } = this.props as { canvasInstance: Canvas };
         onUpdateContextMenu(false, 0, 0, ContextMenuType.CANVAS_SHAPE);
         if (!canvasInstance.html().contains(document.activeElement) && document.activeElement instanceof HTMLElement) {
             document.activeElement.blur();
@@ -579,7 +581,8 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
     };
 
     private onCanvasFindObject = async (e: any): Promise<void> => {
-        const { jobInstance, canvasInstance } = this.props;
+        const { jobInstance } = this.props;
+        const { canvasInstance } = this.props as { canvasInstance: Canvas };
 
         const result = await jobInstance.annotations.select(e.detail.states, e.detail.x, e.detail.y);
 
@@ -613,12 +616,12 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
         const {
             activatedStateID,
             activatedAttributeID,
-            canvasInstance,
             selectedOpacity,
             aamZoomMargin,
             workspace,
             annotations,
         } = this.props;
+        const { canvasInstance } = this.props as { canvasInstance: Canvas };
 
         if (activatedStateID !== null) {
             const [activatedState] = annotations.filter((state: any): boolean => state.clientID === activatedStateID);
@@ -670,7 +673,8 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
     }
 
     private updateIssueRegions(): void {
-        const { canvasInstance, frameIssues } = this.props;
+        const { frameIssues } = this.props;
+        const { canvasInstance } = this.props as { canvasInstance: Canvas };
         if (frameIssues === null) {
             canvasInstance.setupIssueRegions({});
         } else {
@@ -705,12 +709,12 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
             gridSize,
             gridColor,
             gridOpacity,
-            canvasInstance,
             brightnessLevel,
             contrastLevel,
             saturationLevel,
             canvasBackgroundColor,
         } = this.props;
+        const { canvasInstance } = this.props as { canvasInstance: Canvas };
 
         // Size
         window.addEventListener('resize', this.fitCanvas);
@@ -792,12 +796,12 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
             maxZLayer,
             curZLayer,
             minZLayer,
-            onSwitchZLayer,
-            onAddZLayer,
             keyMap,
             switchableAutomaticBordering,
             automaticBordering,
             onSwitchAutomaticBordering,
+            onSwitchZLayer,
+            onAddZLayer,
         } = this.props;
 
         const preventDefault = (event: KeyboardEvent | undefined): void => {
@@ -835,6 +839,8 @@ export default class CanvasWrapperComponent extends React.PureComponent<Props> {
                         height: '100%',
                     }}
                 />
+
+                <ContextImage />
 
                 <Dropdown trigger='click' placement='topCenter' overlay={<ImageSetupsContent />}>
                     <UpOutlined className='cvat-canvas-image-setups-trigger' />

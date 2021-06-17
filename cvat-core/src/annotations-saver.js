@@ -5,7 +5,7 @@
 (() => {
     const serverProxy = require('./server-proxy');
     const { Task } = require('./session');
-    const { ScriptingError } = './exceptions';
+    const { ScriptingError } = require('./exceptions');
 
     class AnnotationsSaver {
         constructor(version, collection, session) {
